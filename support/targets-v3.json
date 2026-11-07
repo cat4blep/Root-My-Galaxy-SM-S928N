@@ -2,9 +2,9 @@
   "schemaVersion": 3,
   "payloads": [
     {
-      "payloadId": "e3q-S928NKSU6EZIF-v1.2",
-      "payloadVersion": "1.2",
-      "displayName": "Galaxy S24 Ultra SM-S928N | EZIF v1.2",
+      "payloadId": "e3q-S928NKSU6EZIF-KTC-v1.3",
+      "payloadVersion": "1.3",
+      "displayName": "Galaxy S24 Ultra SM-S928N | KTC EZIF v1.3",
       "models": [
         "SM-S928N"
       ],
@@ -20,7 +20,7 @@
       "exploit": {
         "url": "https://raw.githubusercontent.com/zimza1abim/Root-My-Galaxy-Payloads-SM-S928N/main/artifacts/e3q-S928NKSU6EZIF/cve-2026-43499-app.so",
         "size": 104128,
-        "sha256": "787762ec72f98a1c0fa9f1bda98abc0b97008cf261579d39ae35a7f623a9f5c1"
+        "sha256": "c83f92534ff24daf6c75bb1882ac84344893f29e23cc7cab52ff99727686cdd4"
       },
       "kernelsu": {
         "url": "https://raw.githubusercontent.com/zimza1abim/Root-My-Galaxy-Payloads-SM-S928N/main/kernelsu/ksud-e3q-S928NKSU6EZIF-kdp",

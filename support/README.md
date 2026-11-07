@@ -2,7 +2,7 @@
 
 `targets-v3.json` is the schema-v3 payload feed for this profile. Add this repository as a
 custom payload source in the Root My Galaxy app and pick the
-**Galaxy S24 Ultra SM-S928N | EZIF v1.2** entry.
+**Galaxy S24 Ultra SM-S928N | KTC EZIF v1.3** entry.
 
 ## Before first use: replace the URL placeholder
 
@@ -24,8 +24,10 @@ instead, not the URL here.
 
 `exactKernelRelease`, `exactBuildId`, `exactFingerprint`, `exactAndroidRelease`, and
 `exactSdk` are matched exactly before anything is downloaded or run, and the native payload
-re-checks them plus the security patch level. They are what keeps this profile from loading
-on another firmware; do not relax them to widen compatibility.
+re-checks them plus the security patch level and both `KTC` sales-code properties. They are
+what keeps this profile from loading on another firmware or CSC; do not relax them to widen
+compatibility. Publish the modified artifacts before using the remote feed; the bundled APK
+works offline.
 
-Root was obtained on this handset four times, but that is not a stability claim — see the
-[port report](../docs/ports/e3q-S928NKSU6EZIF/port-report.md).
+Root and KernelSU late-load were validated on the connected KTC handset — see the
+[KTC v1.3 report](../docs/ports/e3q-S928NKSU6EZIF/ktc-v1.3-report.md).

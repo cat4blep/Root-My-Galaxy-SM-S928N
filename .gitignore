@@ -1,2 +1,6 @@
-# Nothing in this repository is generated; keep the tree curated by hand.
+# Keep local toolchains, repack inputs and untested build outputs out of git.
 .DS_Store
+.tools/
+build/
+original/
+*.idsig

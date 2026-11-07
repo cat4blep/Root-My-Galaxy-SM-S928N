@@ -1,5 +1,9 @@
 # SM-S928N / S928NKSU6EZIF port report
 
+> Current KTC adaptation and its independent validation:
+> [`ktc-v1.3-report.md`](ktc-v1.3-report.md). This document is the historical
+> v1.2 record.
+
 **Port status: root was obtained on this handset four times. The two most recent runs, with
 the payload published here, succeeded on attempt 1/24.** Device identity, kernel image,
 structure layouts, and most symbols are confirmed from the exact firmware and the

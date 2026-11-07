@@ -1,0 +1,7 @@
++ mount -o rprivate none /
++ mount /data/local/tmp/ksud-s25u-kdp /system/bin/logcat
++ /system/bin/logcat late-load --package-name me.weishu.kernelsu
++ status=0 
++ >/data/local/tmp/ktc-late-load.status 
+/data/local/tmp/ktc-late-load.sh[7]: can't create /data/local/tmp/ktc-late-load.status: Permission denied
++ exit 0

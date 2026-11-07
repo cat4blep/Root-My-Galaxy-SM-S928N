@@ -1,7 +1,43 @@
-# Root My Galaxy payload · SM-S928N / S928NKSU6EZIF
+# Root My Galaxy payload · SM-S928N / S928NKSU6EZIF / KTC
 
-Device-specific CVE-2026-43499 app payload for the Galaxy S24 Ultra `SM-S928N`, Korean
-sales code `KOO` (OMC group `OKR`), firmware `S928NKSU6EZIF`, Android 17.
+KTC adaptation of the device-specific CVE-2026-43499 app payload for the Galaxy
+S24 Ultra `SM-S928N`, firmware `S928NKSU6EZIF`, Android 17. The native guard
+requires both live sales-code properties to be `KTC`; it is not a general KOO
+profile.
+
+## KTC v1.3 status
+
+**Root and KernelSU late-load completed on the connected KTC handset.** The
+successful full attempt used tracefs KASLR instead of the physical-P0 scan that
+failed throughout the supplied v1.2 log. KernelSU is present in `/proc/modules`,
+SELinux is Enforcing, and the boot ID is unchanged. Root remains per-boot.
+
+- Validation report: [`docs/ports/e3q-S928NKSU6EZIF/ktc-v1.3-report.md`](docs/ports/e3q-S928NKSU6EZIF/ktc-v1.3-report.md)
+- APK: [`releases/RootMyGalaxy-EZIF-KTC-v1.3-debug.apk`](releases/RootMyGalaxy-EZIF-KTC-v1.3-debug.apk)
+- Payload SHA-256: `c83f92534ff24daf6c75bb1882ac84344893f29e23cc7cab52ff99727686cdd4`
+- APK SHA-256: `395b652efe4018a5d113574f0655a51f86c17a6d8128ddb6076edd97a8e2a221`
+- Upstream compatibility patch: [`patches/ktc-v1.3-upstream.patch`](patches/ktc-v1.3-upstream.patch)
+
+The APK has a new debug signature and cannot update the differently signed v1.2
+package. Uninstalling the old package removes its app data; preserve anything
+you need before installing this build:
+
+```bat
+adb uninstall dev.busung.s25uroot.eziflocal
+adb install RootMyGalaxy-EZIF-KTC-v1.3-debug.apk
+```
+
+Do not run this payload on another firmware or sales code. A failed exploit can
+panic the kernel and reboot the phone. Use it only on your own device or one you
+are authorised to test.
+
+---
+
+# Historical v1.2 documentation · KOO
+
+The text below describes the original KOO-oriented v1.2 profile and its earlier
+validation. It is retained for comparison; the KTC v1.3 report above is the
+current hardware result.
 
 > [!CAUTION]
 > ## ⚠️ USE AT YOUR OWN RISK
